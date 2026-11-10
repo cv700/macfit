@@ -98,4 +98,4 @@ The tests check that the estimator still gives the values we wrote down before t
 
 ## License
 
-No license yet. Until one is added, the default copyright rules apply.
+MIT. See [LICENSE](LICENSE).

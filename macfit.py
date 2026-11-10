@@ -26,7 +26,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 GIB = 2**30
 TIGHT = 0.90  # above this share of the limit, the verdict is "tight": estimates have run up to 4% low
 

@@ -1,12 +1,15 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "macfit"
-version = "0.1.0"
+version = "0.1.1"
 description = "Will this model fit on my Mac? Estimates the peak memory of mlx-lm before you download the weights."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["mlx", "mlx-lm", "apple-silicon", "llm", "memory"]
 requires-python = ">=3.9"
 dependencies = []
 classifiers = [
@@ -14,6 +17,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Environment :: Console",
 ]
+
+[project.urls]
+Homepage = "https://github.com/cv700/macfit"
+Issues = "https://github.com/cv700/macfit/issues"
 
 [project.scripts]
 macfit = "macfit:main"
