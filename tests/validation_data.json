@@ -1,0 +1,222 @@
+{
+ "qwen3-0.6b": {
+  "repo": "mlx-community/Qwen3-0.6B-4bit",
+  "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+  "config": {
+   "architectures": [
+    "Qwen3ForCausalLM"
+   ],
+   "attention_bias": false,
+   "attention_dropout": 0.0,
+   "bos_token_id": 151643,
+   "eos_token_id": 151645,
+   "head_dim": 128,
+   "hidden_act": "silu",
+   "hidden_size": 1024,
+   "initializer_range": 0.02,
+   "intermediate_size": 3072,
+   "max_position_embeddings": 40960,
+   "max_window_layers": 28,
+   "model_type": "qwen3",
+   "num_attention_heads": 16,
+   "num_hidden_layers": 28,
+   "num_key_value_heads": 8,
+   "quantization": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "quantization_config": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "rms_norm_eps": 1e-06,
+   "rope_scaling": null,
+   "rope_theta": 1000000,
+   "sliding_window": null,
+   "tie_word_embeddings": true,
+   "torch_dtype": "bfloat16",
+   "transformers_version": "4.51.0",
+   "use_cache": true,
+   "use_sliding_window": false,
+   "vocab_size": 151936
+  },
+  "weights_bytes": 335450584,
+  "declared_estimate_gib": {
+   "128": 0.44,
+   "2048": 1.009,
+   "8192": 1.665
+  },
+  "measured_peak_gib": {
+   "128": 0.5891,
+   "2048": 1.1522,
+   "8192": 1.7811
+  }
+ },
+ "qwen3-4b": {
+  "repo": "mlx-community/Qwen3-4B-4bit",
+  "revision": "4dcb3d101c2a062e5c1d4bb173588c54ea6c4d25",
+  "config": {
+   "architectures": [
+    "Qwen3ForCausalLM"
+   ],
+   "attention_bias": false,
+   "attention_dropout": 0.0,
+   "bos_token_id": 151643,
+   "eos_token_id": 151645,
+   "head_dim": 128,
+   "hidden_act": "silu",
+   "hidden_size": 2560,
+   "initializer_range": 0.02,
+   "intermediate_size": 9728,
+   "max_position_embeddings": 40960,
+   "max_window_layers": 36,
+   "model_type": "qwen3",
+   "num_attention_heads": 32,
+   "num_hidden_layers": 36,
+   "num_key_value_heads": 8,
+   "quantization": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "quantization_config": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "rms_norm_eps": 1e-06,
+   "rope_scaling": null,
+   "rope_theta": 1000000,
+   "sliding_window": null,
+   "tie_word_embeddings": true,
+   "torch_dtype": "bfloat16",
+   "transformers_version": "4.51.0",
+   "use_cache": true,
+   "use_sliding_window": false,
+   "vocab_size": 151936
+  },
+  "weights_bytes": 2263022529,
+  "declared_estimate_gib": {
+   "128": 2.243,
+   "2048": 2.874,
+   "8192": 3.718
+  },
+  "measured_peak_gib": {
+   "128": 2.4269,
+   "2048": 2.984,
+   "8192": 3.7263
+  }
+ },
+ "qwen3-8b": {
+  "repo": "mlx-community/Qwen3-8B-4bit",
+  "revision": "545dc4251c05440727734bcd94334791f6ab0192",
+  "config": {
+   "architectures": [
+    "Qwen3ForCausalLM"
+   ],
+   "attention_bias": false,
+   "attention_dropout": 0.0,
+   "bos_token_id": 151643,
+   "eos_token_id": 151645,
+   "head_dim": 128,
+   "hidden_act": "silu",
+   "hidden_size": 4096,
+   "initializer_range": 0.02,
+   "intermediate_size": 12288,
+   "max_position_embeddings": 40960,
+   "max_window_layers": 36,
+   "model_type": "qwen3",
+   "num_attention_heads": 32,
+   "num_hidden_layers": 36,
+   "num_key_value_heads": 8,
+   "quantization": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "quantization_config": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "rms_norm_eps": 1e-06,
+   "rope_scaling": null,
+   "rope_theta": 1000000,
+   "sliding_window": null,
+   "tie_word_embeddings": false,
+   "torch_dtype": "bfloat16",
+   "transformers_version": "4.51.0",
+   "use_cache": true,
+   "use_sliding_window": false,
+   "vocab_size": 151936
+  },
+  "weights_bytes": 4607835174,
+  "declared_estimate_gib": {
+   "128": 4.427,
+   "2048": 5.058,
+   "8192": 5.902
+  },
+  "measured_peak_gib": {
+   "128": 4.5517,
+   "2048": 5.1193,
+   "8192": 5.9163
+  }
+ },
+ "qwen3-30b-a3b": {
+  "repo": "mlx-community/Qwen3-30B-A3B-4bit",
+  "revision": "d388dead1515f5e085ef7a0431dd8fadf0886c57",
+  "config": {
+   "architectures": [
+    "Qwen3MoeForCausalLM"
+   ],
+   "attention_bias": false,
+   "attention_dropout": 0.0,
+   "bos_token_id": 151643,
+   "decoder_sparse_step": 1,
+   "eos_token_id": 151645,
+   "head_dim": 128,
+   "hidden_act": "silu",
+   "hidden_size": 2048,
+   "initializer_range": 0.02,
+   "intermediate_size": 6144,
+   "max_position_embeddings": 40960,
+   "max_window_layers": 48,
+   "mlp_only_layers": [],
+   "model_type": "qwen3_moe",
+   "moe_intermediate_size": 768,
+   "norm_topk_prob": true,
+   "num_attention_heads": 32,
+   "num_experts": 128,
+   "num_experts_per_tok": 8,
+   "num_hidden_layers": 48,
+   "num_key_value_heads": 4,
+   "output_router_logits": false,
+   "quantization": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "quantization_config": {
+    "group_size": 64,
+    "bits": 4
+   },
+   "rms_norm_eps": 1e-06,
+   "rope_scaling": null,
+   "rope_theta": 1000000.0,
+   "router_aux_loss_coef": 0.001,
+   "sliding_window": null,
+   "tie_word_embeddings": false,
+   "torch_dtype": "bfloat16",
+   "transformers_version": "4.51.0",
+   "use_cache": true,
+   "use_sliding_window": false,
+   "vocab_size": 151936
+  },
+  "weights_bytes": 17174780668,
+  "declared_estimate_gib": {
+   "128": 16.119,
+   "2048": 16.656,
+   "8192": 17.219
+  },
+  "measured_peak_gib": {
+   "128": 16.1784,
+   "2048": 16.7847,
+   "8192": 17.3785
+  }
+ }
+}
