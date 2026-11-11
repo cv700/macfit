@@ -49,11 +49,48 @@ These Qwen3-4B points set the in-flight term, so they are not a fair test. They 
 | 8K prompt, 4-bit cache, step 512 | 3.33 GiB | 3.31 GiB | +0.7% |
 | 1K prompt, prefill step 512 | 2.68 GiB | 2.77 GiB | −3.1% |
 
+## Several sessions at once
+
+Run on 2026-11-10 with `mlx_lm.benchmark -b`, which prefills all prompts of a batch together. 8,192-token prompts, 128 new tokens, prefill step 2,048. The same M5, MLX 0.32.4 and mlx-lm 0.32.2. The Mac was on battery, which does not change peak memory.
+
+Before the run we declared one sum: weights + N × (KV cache + buffers in flight). We said it would be within 10% at 2, 4 and 8 sessions. It was not: three of the six cells missed, all on the high side. A sum with the buffers counted once came in low. So `--sessions` prints both.
+
+| Model | Sessions | Measured | Low figure | High figure |
+|---|---|---|---|---|
+| Qwen3-8B, 4-bit | 2 | 7.84 GB | 7.58 GB (3.4% low) | 8.07 GB (2.8% high) |
+| Qwen3-8B, 4-bit | 4 | 10.53 GB | 10.07 GB (4.5% low) | 11.52 GB (8.6% high) |
+| Qwen3-8B, 4-bit | 8 | 16.18 GB | 15.06 GB (7.5% low) | 18.44 GB (12.2% high) |
+| Qwen3-4B, 4-bit | 2 | 5.33 GB | 5.24 GB (1.9% low) | 5.72 GB (6.7% high) |
+| Qwen3-4B, 4-bit | 4 | 8.04 GB | 7.73 GB (4.1% low) | 9.18 GB (12.4% high) |
+| Qwen3-4B, 4-bit | 8 | 13.52 GB | 12.71 GB (6.4% low) | 16.09 GB (16.0% high) |
+
+GB here is 10^9 bytes, as mlx-lm prints it. Each added session cost 1.33 to 1.48 GB. That is the KV cache (1.25 GB) plus 0.1 to 0.2 GB. With one session, both models were within 0.3%.
+
+## Against figures that Apple published
+
+Apple has published peak memory for seven standard models. We ran macfit with the same prompt length and token count.
+
+| Model | Apple | macfit | Difference |
+|---|---|---|---|
+| Qwen3-1.7B, bf16 | 4.40 GB | 4.42 GB | +0.5% |
+| Qwen3-8B, bf16 | 17.46 GB | 17.51 GB | +0.3% |
+| Qwen3-8B, 4-bit | 5.61 GB | 5.48 GB | −2.4% |
+| Qwen3-14B, 4-bit | 9.16 GB | 9.04 GB | −1.3% |
+| gpt-oss-20b, MXFP4 (sliding window) | 12.08 GB | 11.77 GB | −2.5% |
+| Qwen3-30B-A3B, 4-bit | 17.31 GB | 17.13 GB | −1.0% |
+| Mistral Medium 3.5 128B, FP8, 65,536 tokens | 158 GB | 157.8 GB | −0.1% |
+
+- The first six rows: a 4,096-token prompt and 128 new tokens on a 24 GB M5 MacBook Pro. Source: [Exploring LLMs with MLX and the Neural Accelerators in the M5 GPU](https://machinelearning.apple.com/research/exploring-llms-mlx-m5).
+- The last row: a Mac Studio with M5 Ultra. Source: [Local and Distributed Large LLM Inference with MLX and RDMA on Mac Studio](https://machinelearning.apple.com/research/mlx-distributed-inference).
+- We read "GB" in both posts as 10^9 bytes.
+- The second post also reports up to 68 GB for Qwen 3.8 27B. That model mixes attention with recurrent layers, so macfit gives no estimate for it.
+
 ## Not yet checked
 
-- Sliding-window layers.
+- Sliding-window layers, by a measurement of our own.
 - Any other Mac, or other MLX versions.
-- Models from other families (Llama, Mistral, Gemma).
+- Models from other families (Llama, Gemma), by any measurement. Mistral, by a measurement of our own.
+- Sessions that arrive at different times, and the saved caches of `mlx_lm.server`.
 
 ## Data
 

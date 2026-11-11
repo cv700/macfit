@@ -80,5 +80,28 @@ class Behaviour(unittest.TestCase):
         self.assertEqual(macfit.kv_cache_bytes(["full"], 1, 1, 1, 16), macfit.kv_cache_bytes(["full"], 1, 1, 256, 16))
 
 
+class Sessions(unittest.TestCase):
+    """--sessions: a low-to-high range. Measured with mlx_lm.benchmark -b 2, 4, 8 (8,192-token prompts, 128 new tokens)."""
+
+    def test_one_session_unchanged(self):
+        m = DATA["qwen3-8b"]
+        one = macfit.peak_bytes(m["config"], m["weights_bytes"], 8192, 128)
+        self.assertNotIn("peak_low", one)
+        self.assertEqual(one["peak"], m["weights_bytes"] + one["kv"] + one["inflight"])
+
+    def test_range_brackets_measured_peaks(self):
+        for model in ("qwen3-4b", "qwen3-8b"):
+            m = DATA[model]
+            for sessions, measured_gb in m["sessions_measured_peak_gb"].items():
+                est = macfit.peak_bytes(m["config"], m["weights_bytes"], 8192, 128, sessions=int(sessions))
+                self.assertLessEqual(est["peak_low"] / 1e9, measured_gb, (model, sessions))
+                self.assertGreaterEqual(est["peak"] / 1e9, measured_gb, (model, sessions))
+
+    def test_range_width_is_the_extra_chunks(self):
+        m = DATA["qwen3-8b"]
+        est = macfit.peak_bytes(m["config"], m["weights_bytes"], 8192, 128, sessions=4)
+        self.assertAlmostEqual(est["peak"] - est["peak_low"], 3 * est["inflight"], delta=1)
+
+
 if __name__ == "__main__":
     unittest.main()

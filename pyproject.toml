@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "macfit"
-version = "0.1.1"
+version = "0.2.0"
 description = "Will this model fit on my Mac? Estimates the peak memory of mlx-lm before you download the weights."
 readme = "README.md"
 license = "MIT"

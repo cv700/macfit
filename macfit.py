@@ -26,7 +26,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 GIB = 2**30
 TIGHT = 0.90  # above this share of the limit, the verdict is "tight": estimates have run up to 4% low
 
@@ -136,7 +136,12 @@ def kv_cache_bytes(layers, KV, d, tokens, kv_bits):
     return sum(per * (slots if w == "full" else min(slots, w)) for w in layers)
 
 
-def peak_bytes(config, weights, prompt, gen, kv_bits=16, step=2048):
+def peak_bytes(config, weights, prompt, gen, kv_bits=16, step=2048, sessions=1):
+    """Peak memory for `sessions` conversations held at once, each with this prompt.
+
+    "peak" is the high figure: every session has a prefill chunk in flight. With more than one session,
+    "peak_low" is the low figure: one chunk in flight. Measured peaks at 2 to 8 sessions fell between the two.
+    """
     layers, KV, d, H = attention_layout(config)
     chunk = min(prompt, step)
     kv = kv_cache_bytes(layers, KV, d, prompt + gen + 1, kv_bits)
@@ -144,7 +149,11 @@ def peak_bytes(config, weights, prompt, gen, kv_bits=16, step=2048):
     scores = 0.0
     if kv_bits != 16:  # the quantized-cache attention path writes scores and softmax output (bf16)
         scores = 2 * H * chunk * prompt * 2
-    return {"weights": weights, "kv": kv, "inflight": inflight, "scores": scores, "peak": weights + kv + inflight + scores}
+    est = {"weights": weights, "kv": kv, "inflight": inflight, "scores": scores,
+           "peak": weights + sessions * (kv + inflight + scores)}
+    if sessions > 1:
+        est["peak_low"] = weights + sessions * kv + inflight + scores
+    return est
 
 
 def metal_limit():
@@ -190,14 +199,14 @@ def verdict(share):
     return "tight" if share > TIGHT else "yes"
 
 
-def longest_prompt(config, weights, gen, kv_bits, step, budget):
+def longest_prompt(config, weights, gen, kv_bits, step, budget, sessions=1):
     """Largest prompt length whose estimate stays within budget, by bisection (0 if none)."""
-    if peak_bytes(config, weights, 1, gen, kv_bits, step)["peak"] > budget:
+    if peak_bytes(config, weights, 1, gen, kv_bits, step, sessions)["peak"] > budget:
         return 0
     lo, hi = 0, 1 << 22
     while hi - lo > 64:
         mid = (lo + hi) // 2
-        lo, hi = (mid, hi) if peak_bytes(config, weights, mid, gen, kv_bits, step)["peak"] <= budget else (lo, mid)
+        lo, hi = (mid, hi) if peak_bytes(config, weights, mid, gen, kv_bits, step, sessions)["peak"] <= budget else (lo, mid)
     return lo
 
 
@@ -208,10 +217,14 @@ def main(argv=None):
     ap.add_argument("--max-tokens", type=int, default=512, help="tokens to generate (default 512)")
     ap.add_argument("--kv-bits", type=int, choices=[16, 8, 4], default=16, help="KV cache bits (mlx-lm default 16)")
     ap.add_argument("--prefill-step", type=int, default=2048, help="mlx-lm prefill step size (default 2048)")
+    ap.add_argument("--sessions", type=int, default=1,
+                    help="conversations held at once: users at the same time plus saved caches (default 1)")
     ap.add_argument("--limit-gb", type=float, help="GPU memory limit in GiB (default: read from this Mac)")
     ap.add_argument("--json", action="store_true", help="print JSON")
     ap.add_argument("--version", action="version", version=f"macfit {__version__}")
     a = ap.parse_args(argv)
+    if a.sessions < 1:
+        ap.error("--sessions must be 1 or more")
 
     config, weights, source = load_model(a.model)
     limit, how = (int(a.limit_gb * GIB), "given") if a.limit_gb else gpu_limit()
@@ -230,14 +243,14 @@ def main(argv=None):
         return
     rows = []
     for T in [int(x) for x in a.context.split(",")]:
-        est = peak_bytes(config, weights, T, a.max_tokens, a.kv_bits, a.prefill_step)
+        est = peak_bytes(config, weights, T, a.max_tokens, a.kv_bits, a.prefill_step, a.sessions)
         share = est["peak"] / limit
         rows.append({"prompt_tokens": T, **est, "share_of_limit": share, "verdict": verdict(share), "fits": share <= 1})
     args = (config, weights, a.max_tokens, a.kv_bits, a.prefill_step)
-    max_fit, max_room = longest_prompt(*args, limit), longest_prompt(*args, TIGHT * limit)
+    max_fit, max_room = longest_prompt(*args, limit, a.sessions), longest_prompt(*args, TIGHT * limit, a.sessions)
     result = {"model": source, "weights_bytes": weights, "layers": len(layers),
               "sliding_layers": sum(w != "full" for w in layers), "kv_heads": KV, "head_dim": d,
-              "kv_bits": a.kv_bits, "prefill_step": a.prefill_step, "max_tokens": a.max_tokens,
+              "kv_bits": a.kv_bits, "prefill_step": a.prefill_step, "max_tokens": a.max_tokens, "sessions": a.sessions,
               "gpu_limit_bytes": limit, "gpu_limit_source": how, "rows": rows,
               "max_prompt_that_fits": max_fit, "max_prompt_with_10pct_room": max_room, "version": __version__}
     if a.json:
@@ -247,15 +260,28 @@ def main(argv=None):
     sliding = f" ({result['sliding_layers']} sliding-window)" if result["sliding_layers"] else ""
     print(f"        weights {g(weights)}, {len(layers)} layers{sliding}, {KV} KV heads, head size {d}")
     print(f"Mac:    GPU memory limit {g(limit)} ({how})")
-    print(f"Setup:  {a.kv_bits}-bit KV cache, prefill step {a.prefill_step}, {a.max_tokens} new tokens\n")
-    print(f"{'Prompt':>9}  {'KV cache':>10}  {'Peak':>10}  Fits?")
+    many = a.sessions > 1
+    held = f", {a.sessions} sessions held at once" if many else ""
+    print(f"Setup:  {a.kv_bits}-bit KV cache, prefill step {a.prefill_step}, {a.max_tokens} new tokens{held}\n")
+    if many:
+        print(f"{'Prompt':>9}  {'KV cache, each':>14}  {'Peak, low to high':>22}  Fits?")
+    else:
+        print(f"{'Prompt':>9}  {'KV cache':>10}  {'Peak':>10}  Fits?")
     for r in rows:
         pct = f"{100 * r['share_of_limit']:.0f}% of the limit"
         text = {"yes": f"yes, {pct}", "tight": f"tight, {pct}", "no": f"NO, {g(r['peak'] - limit)} over"}[r["verdict"]]
-        print(f"{r['prompt_tokens']:>9,}  {g(r['kv']):>10}  {g(r['peak']):>10}  {text}")
+        if many:
+            span = f"{r['peak_low'] / GIB:.2f} to {r['peak'] / GIB:.2f} GiB"
+            print(f"{r['prompt_tokens']:>9,}  {g(r['kv']):>14}  {span:>22}  {text}")
+        else:
+            print(f"{r['prompt_tokens']:>9,}  {g(r['kv']):>10}  {g(r['peak']):>10}  {text}")
+    if many:
+        print(f"\nLow: one session is in prefill. High: all {a.sessions} are. \"Fits?\" uses the high figure.")
+        print("Measured peaks at 2 to 8 sessions fell between the two (two models, one M5).")
     trained = config.get("text_config", config).get("max_position_embeddings")
     if max_fit:
-        print(f"\nLongest prompt with 10% to spare: about {max_room:,} tokens (at the limit: about {max_fit:,}).")
+        each = " for each session" if many else ""
+        print(f"\nLongest prompt{each} with 10% to spare: about {max_room:,} tokens (at the limit: about {max_fit:,}).")
         if trained and trained < max_room:
             print(f"The model itself is trained for up to {trained:,} tokens.")
     else:
